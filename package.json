@@ -1,5 +1,5 @@
 {
-  "name": "vscode-expression-multiliner-js-ts",
+  "name": "expression-multiliner-js-ts",
 	"displayName": "Expression Multiliner (JS/TS)",
 	"description": "Toggle your object/array expression between single-line and multi-line in a single command.",
 	"version": "0.0.1",
@@ -10,13 +10,13 @@
 		"Other"
 	],
 	"activationEvents": [
-        "onCommand:vscode-expression-multiliner-js-ts.helloWorld"
+        "onCommand:expression-multiliner-js-ts.helloWorld"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "vscode-expression-multiliner-js-ts.helloWorld",
+				"command": "expression-multiliner-js-ts.helloWorld",
 				"title": "Hello World"
 			}
 		]
