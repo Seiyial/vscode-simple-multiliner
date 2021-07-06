@@ -14,25 +14,28 @@ const someFn = (arg1: string, arg2: number, arg3: User) => {}
 ```
 
 Into This:
+
+(obeys the indentation rules of the current file being edited (shown at the bottom right), be it 2-size tab, 2-spaces, 4-spaces or even 3-size tab)
+
 ```dart
 // dart
 final bundle = APIMessageBundle(
-	messages: messages,
-	title: title,
-	mostRecentMsgDT: mostRecentMsgDT,
-	type: type
+  messages: messages,
+  title: title,
+  mostRecentMsgDT: mostRecentMsgDT,
+  type: type
 );
 ```
 ```ts
 // JS/TS
 const a: B = {
-	c: 'd',
-	e: 'f'
+    c: 'd',
+    e: 'f'
 }
 const someFn = (
-	arg1: string,
-	arg2: number,
-	arg3: User
+    arg1: string,
+    arg2: number,
+    arg3: User
 ) => {
 
 }
