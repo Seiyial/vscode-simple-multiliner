@@ -10,14 +10,14 @@
 		"Other"
 	],
 	"activationEvents": [
-        "onCommand:expression-multiliner-js-ts.helloWorld"
+		"onCommand:expression-multiliner-js-ts.helloWorld"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
 				"command": "expression-multiliner-js-ts.helloWorld",
-				"title": "Hello World"
+				"title": "Simple Multiliner: Split expression to multiline"
 			}
 		]
 	},
