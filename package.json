@@ -1,7 +1,7 @@
 {
-  "name": "expression-multiliner-js-ts",
-	"displayName": "Expression Multiliner (JS/TS)",
-	"description": "Toggle your object/array expression between single-line and multi-line in a single command.",
+  "name": "simple-expression-multiliner",
+	"displayName": "Simple Expression Multiliner (beta)",
+	"description": "Toggle your object/array expression between single-line and multi-line in a single command. (may be buggy with more complex statements) (PRs welcome)",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.55.0"
@@ -10,14 +10,14 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:expression-multiliner-js-ts.helloWorld"
+		"onCommand:syx-simple-multiliner.spread"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "expression-multiliner-js-ts.helloWorld",
-				"title": "Simple Multiliner: Split expression to multiline"
+				"command": "syx-simple-multiliner.spread",
+				"title": "Simple Multiliner: Split to multiline"
 			}
 		]
 	},

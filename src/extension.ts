@@ -16,7 +16,7 @@ import * as vscode from 'vscode'
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
-	const COMMAND: string = 'daybreak-simple-multiliner.spread'
+	const COMMAND: string = 'syx-simple-multiliner.spread'
 
 	let disposable = vscode.commands.registerCommand(COMMAND, () => {
 		const editor = vscode.window.activeTextEditor

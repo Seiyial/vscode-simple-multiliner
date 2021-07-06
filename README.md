@@ -42,3 +42,14 @@ const someFn = (
 
 - Discriminate which blocks are meant to be multilined and which aren't. Essentially, may not be able to handle complex statements.
 - Pull requests that help it support more complex statements/features without hurting existing support will all be welcome!
+
+### How to map to keybindings
+
+- Open command palette (default: cmd/ctrl + shift + p) and find **Preferences: Open Keyboard Shortcuts (JSON)**
+- Add an entry into the JSON array, and set the `key` to your preferred key combination.
+	```JSON
+	{
+		"key": "cmd+]",
+		"command": "syx-simple-multiliner.spread"
+	}
+	```
