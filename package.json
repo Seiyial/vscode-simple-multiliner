@@ -2,8 +2,8 @@
 	"name": "simple-expression-multiliner",
 	"displayName": "Simple Expression Multiliner (beta)",
 	"publisher": "Seiyial",
-	"description": "Toggle your object/array expression between single-line and multi-line in a single command. (may be buggy with more complex statements) (PRs welcome)",
-	"version": "0.0.2",
+	"description": "Toggle your object/array expression between single-line and multi-line in a single command. (PRs welcome)",
+	"version": "0.0.3",
 	"engines": {
 		"vscode": "^1.55.0"
 	},
