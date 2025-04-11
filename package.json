@@ -3,9 +3,9 @@
 	"displayName": "Simple Expression Multiliner (beta)",
 	"publisher": "Seiyial",
 	"description": "Toggle your object/array expression between single-line and multi-line in a single command. (PRs welcome)",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"engines": {
-		"vscode": "^1.55.0"
+		"vscode": "^1.85.0"
 	},
 	"repository": "https://github.com/Seiyial/vscode-simple-multiliner",
 	"license": "CC-BY-4.0",
@@ -13,15 +13,12 @@
 		"Formatters",
 		"Other"
 	],
-	"activationEvents": [
-		"onCommand:syx-simple-multiliner.spread"
-	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "syx-simple-multiliner.spread",
-				"title": "Simple Multiliner: Split to multiline"
+				"command": "syl.vscode-multiliner.spread1",
+				"title": "Expand 1 level to multi-line"
 			}
 		]
 	},
@@ -37,20 +34,20 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@types/glob": "^7.1.3",
+		"@types/glob": "^8.1.0",
 		"@types/mocha": "^8.0.4",
-		"@types/node": "^12.11.7",
-		"@types/vscode": "^1.55.0",
+		"@types/node": "^22.14.0",
+		"@types/vscode": "^1.99.1",
 		"@typescript-eslint/eslint-plugin": "^4.14.1",
 		"@typescript-eslint/parser": "^4.14.1",
-		"@vscode/vsce": "^2.18.0",
+		"@vscode/vsce": "^3.3.2",
 		"eslint": "^7.19.0",
-		"glob": "^7.1.6",
-		"mocha": "^8.2.1",
-		"ts-loader": "^8.0.14",
-		"typescript": "^4.1.3",
-		"vscode-test": "^1.5.0",
-		"webpack": "^5.19.0",
-		"webpack-cli": "^4.4.0"
+		"glob": "^11.0.1",
+		"mocha": "^11.1.0",
+		"ts-loader": "^9.5.2",
+		"typescript": "^5.8.3",
+		"vscode-test": "^1.6.1",
+		"webpack": "^5.99.5",
+		"webpack-cli": "^6.0.1"
 	}
 }
