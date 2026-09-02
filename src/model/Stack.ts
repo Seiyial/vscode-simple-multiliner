@@ -1,27 +1,25 @@
-import { trv } from '../utils/trv'
+import { Level } from '../splat/levels'
 
 export class LevelStack {
-	constructor(private items: trv.Level[] = []) {}
+	constructor(private items: Level[] = []) {}
 
-	public wasUsed: boolean = false
-
-	public addToTop (item: trv.Level) {
+	public addToTop (item: Level) {
 		this.items.push(item)
 	}
 
-	public get top (): trv.Level | undefined {
+	public get top (): Level | undefined {
 		return this.items[this.items.length - 1]
 	}
 
-	public get topIsLast (): boolean {
+	public get isAtRoot (): boolean {
 		return this.items.length === 1
 	}
 
-	public size (): number {
+	public get size (): number {
 		return this.items.length
 	}
 
-	public removeTop (): trv.Level | undefined {
+	public removeTop (): Level | undefined {
 		return this.items.pop()
 	}
 }

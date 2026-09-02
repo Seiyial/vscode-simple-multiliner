@@ -6,7 +6,6 @@ import { splatIndentableCommand } from './commands/splatIndentable'
 export function activate(context: vscode.ExtensionContext) {
 
 	let disp = vscode.commands.registerCommand('syl.vscode-multiliner.spread1', splatIndentableCommand)
-	console.log('are we running?')
 	context.subscriptions.push(disp)
 }
 
