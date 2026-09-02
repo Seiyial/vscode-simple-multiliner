@@ -181,7 +181,17 @@ export const splat = (rawText: string, indentSource: indents.TIndentSource): TSp
 	}
 
 	if (stack.size > 0) {
-		return { changed: false, reason: 'unbalanced' }
+		// a selection ending right after a jsx opener's `>` is a natural line
+		// boundary — the children continue on the following lines — so its
+		// prop list can still be splatted; any other leftover level means the
+		// selection is genuinely unbalanced
+		const endsAfterJsxOpener =
+			stack.size === 1
+			&& target.level.type === 'jsx_tag'
+			&& target.level.phase === 'children'
+		if (!endsAfterJsxOpener) {
+			return { changed: false, reason: 'unbalanced' }
+		}
 	}
 	if (outText === inText) {
 		return { changed: false, reason: 'nothing-to-expand' }

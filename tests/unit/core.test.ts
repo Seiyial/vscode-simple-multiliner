@@ -146,6 +146,38 @@ describe('splat jsx', () => {
 	test('preserves the leading indent of the line', () => {
 		expect(expanded('    <div a b />')).toEqual({ changed: true, text: '    <div\n        a\n        b\n    />' })
 	})
+
+	test('splats a lone opener line whose children continue below', () => {
+		const input = "<Modal title='New Flowchart' isOpen={showNewFlowchartModal} onClose={() => setShowNewFlowchartModal(false)}>"
+		expect(expanded(input)).toEqual({
+			changed: true,
+			text: "<Modal\n    title='New Flowchart'\n    isOpen={showNewFlowchartModal}\n    onClose={() => setShowNewFlowchartModal(false)}\n>",
+		})
+	})
+
+	test('a lone opener line with a single prop still ends with the closer on its own line', () => {
+		expect(expanded('<Modal a >')).toEqual({ changed: true, text: '<Modal\n    a\n>' })
+	})
+
+	test('a lone propless opener line is a no-op', () => {
+		expect(expanded('<Modal>')).toEqual({ changed: false, reason: 'nothing-to-expand' })
+	})
+
+	test('a lone fragment opener line is a no-op', () => {
+		expect(expanded('<>')).toEqual({ changed: false, reason: 'nothing-to-expand' })
+	})
+
+	test('a truncated prop list stays unbalanced', () => {
+		expect(expanded('<Modal a')).toEqual({ changed: false, reason: 'unbalanced' })
+	})
+
+	test('a truncated children region stays unbalanced', () => {
+		expect(expanded('<Modal a>x')).toEqual({ changed: false, reason: 'unbalanced' })
+	})
+
+	test('a truncated prop expression stays unbalanced', () => {
+		expect(expanded('<Modal onClose={() => setShow(false)')).toEqual({ changed: false, reason: 'unbalanced' })
+	})
 })
 
 describe('splat refusals', () => {
