@@ -158,7 +158,7 @@ export const splat = (rawText: string, indentSource: indents.TIndentSource): TSp
 			continue
 		}
 
-		if (stack.isAtRoot && top.type === 'lang_block' && char === ',') {
+		if (stack.isAtRoot && (top.type === 'lang_block' || top.type === 'call_object') && char === ',') {
 			trimTrailingWhitespace()
 			flush(',')
 			pendingBreak = '\n' + siblingIndent

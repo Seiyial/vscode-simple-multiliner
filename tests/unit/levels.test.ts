@@ -32,10 +32,26 @@ describe('matchJsxNameAt', () => {
 
 describe('findSplatTarget', () => {
 	test('finds the first non-empty lang block', () => {
-		const target = findSplatTarget('foo({a: 1})', 0)
+		const target = findSplatTarget('foo(a)', 0)
 		expect(target?.level.type).toBe('lang_block')
 		expect(target?.index).toBe(3)
 		expect(target?.level.numIndentsInSiblings).toBe(1)
+	})
+
+	test('fuses a call with a single object argument', () => {
+		const target = findSplatTarget('foo({a: 1})', 0)
+		expect(target?.level.type).toBe('call_object')
+		expect(target?.index).toBe(3)
+		expect(target?.level.numIndentsInSiblings).toBe(1)
+		expect(openTokenOf(target!.level)).toBe('({')
+	})
+
+	test('does not fuse calls with several arguments', () => {
+		expect(findSplatTarget('foo({a}, b)', 0)?.level.type).toBe('lang_block')
+	})
+
+	test('does not fuse calls with empty object arguments', () => {
+		expect(findSplatTarget('foo({})', 0)?.level.type).toBe('lang_block')
 	})
 
 	test('skips empty pairs', () => {
@@ -107,5 +123,11 @@ describe('matchClose', () => {
 		expect(matchClose(level, 'a /> b', 2)).toEqual({ kind: 'pop', token: '/>' })
 		expect(matchClose(level, '>', 0)).toEqual({ kind: 'enter-children', token: '>' })
 		expect(matchClose(level, 'a', 0).kind).toBe('none')
+	})
+
+	test('call object closers', () => {
+		const level = findSplatTarget('f({a})', 0)!.level
+		expect(matchClose(level, '})', 0)).toEqual({ kind: 'pop', token: '})' })
+		expect(matchClose(level, '}', 0).kind).toBe('none')
 	})
 })

@@ -34,7 +34,7 @@ describe('splat lang blocks', () => {
 	})
 
 	test('splits call arguments and keeps the prefix', () => {
-		expect(expanded('foo({a: 1, b: 2})')).toEqual({ changed: true, text: 'foo(\n    {a: 1, b: 2}\n)' })
+		expect(expanded('foo(a, {b: 2})')).toEqual({ changed: true, text: 'foo(\n    a,\n    {b: 2}\n)' })
 	})
 
 	test('does not treat comparisons as JSX', () => {
@@ -51,6 +51,63 @@ describe('splat lang blocks', () => {
 
 	test('template literals with interpolations stay inline', () => {
 		expect(expanded('[`x ${a} y`, "z"]')).toEqual({ changed: true, text: '[\n    `x ${a} y`,\n    "z"\n]' })
+	})
+})
+
+describe('splat call-object fusion', () => {
+	test('fuses a lone object argument into the call', () => {
+		expect(expanded('fn({ a, b })')).toEqual({ changed: true, text: 'fn({\n    a,\n    b\n})' })
+	})
+
+	test('fuses on a member call with a long prefix', () => {
+		const input = 'return api.constructibles.createNewEmptyFlowchart.mutate({ name: nameInput, roleName: userRoleInput })'
+		expect(expanded(input)).toEqual({
+			changed: true,
+			text: 'return api.constructibles.createNewEmptyFlowchart.mutate({\n    name: nameInput,\n    roleName: userRoleInput\n})',
+		})
+	})
+
+	test('keeps a trailing comma on its entry line', () => {
+		expect(expanded('fn({ a: 1, b: 2, })')).toEqual({ changed: true, text: 'fn({\n    a: 1,\n    b: 2,\n})' })
+	})
+
+	test('strings containing the closer do not break the fusion', () => {
+		expect(expanded('fn({ s: "}" })')).toEqual({ changed: true, text: 'fn({\n    s: "}"\n})' })
+	})
+
+	test('nested blocks and calls stay verbatim inside the fused object', () => {
+		expect(expanded('fn({ a: { b: 1 }, c: g({ d }) })')).toEqual({
+			changed: true,
+			text: 'fn({\n    a: { b: 1 },\n    c: g({ d })\n})',
+		})
+	})
+
+	test('trailing chained calls stay on the closer line', () => {
+		expect(expanded('fn({ a }).then(g)')).toEqual({ changed: true, text: 'fn({\n    a\n}).then(g)' })
+	})
+
+	test('multiple arguments fall back to splitting the call', () => {
+		expect(expanded('fn({ a }, b)')).toEqual({ changed: true, text: 'fn(\n    { a },\n    b\n)' })
+	})
+
+	test('arrow function arguments are not fused', () => {
+		expect(expanded('fn(() => { x() })')).toEqual({ changed: true, text: 'fn(\n    () => { x() }\n)' })
+	})
+
+	test('empty object arguments are not fused', () => {
+		expect(expanded('fn({})')).toEqual({ changed: true, text: 'fn(\n    {}\n)' })
+	})
+
+	test('unbalanced fused calls stay unbalanced', () => {
+		expect(expanded('fn({ a }')).toEqual({ changed: false, reason: 'unbalanced' })
+	})
+
+	test('preserves the leading indent of the line', () => {
+		expect(expanded('    fn({ a })')).toEqual({ changed: true, text: '    fn({\n        a\n    })' })
+	})
+
+	test('fuses with tabs', () => {
+		expect(splat('fn({ a })', { type: 'tab' })).toEqual({ changed: true, text: 'fn({\n\ta\n})' })
 	})
 })
 

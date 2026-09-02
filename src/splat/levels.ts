@@ -6,6 +6,7 @@ export type Level =
 	| { type: 'lang_block', openToken: TLangOpener, closeToken: TLangCloser, numIndentsInSiblings: number }
 	| { type: 'string_block', openToken: TStringOpener, closeToken: TStringOpener, numIndentsInSiblings: number }
 	| { type: 'jsx_tag', name: string, phase: 'props' | 'children', numIndentsInSiblings: number }
+	| { type: 'call_object', openToken: string, closeToken: string, numIndentsInSiblings: number }
 
 const langClosers: Record<TLangOpener, TLangCloser> = {
 	'{': '}',
@@ -52,7 +53,7 @@ export const createJsxLevel = (name: string, numIndentsHere: number, phase: 'pro
 })
 
 export const openTokenOf = (level: Level): string => {
-	if (level.type === 'lang_block') {
+	if (level.type === 'lang_block' || level.type === 'call_object') {
 		return level.openToken
 	}
 	if (level.type === 'string_block') {
@@ -72,6 +73,11 @@ export const matchClose = (level: Level, text: string, i: number): TCloseMatch =
 	const char = text[i]
 	if (level.type === 'lang_block') {
 		return char === level.closeToken
+			? { kind: 'pop', token: level.closeToken }
+			: { kind: 'none' }
+	}
+	if (level.type === 'call_object') {
+		return text.startsWith(level.closeToken, i)
 			? { kind: 'pop', token: level.closeToken }
 			: { kind: 'none' }
 	}
@@ -146,6 +152,12 @@ export const findSplatTarget = (text: string, numIndentsHere: number): { level: 
 				i++
 				continue
 			}
+			if (char === '(') {
+				const fused = matchCallObjectAt(text, i, numIndentsHere)
+				if (fused !== null) {
+					return { level: fused, index: i }
+				}
+			}
 			return { level: createLangLevel(char, numIndentsHere), index: i }
 		}
 		if (char === '<') {
@@ -185,7 +197,7 @@ const findBalancedBraceEnd = (text: string, from: number): number => {
 		}
 		if (char === '{') {
 			depth++
-		} else if (char === '}') {
+		} else 		if (char === '}') {
 			depth--
 			if (depth === 0) {
 				return i + 1
@@ -194,6 +206,41 @@ const findBalancedBraceEnd = (text: string, from: number): number => {
 		i++
 	}
 	return -1
+}
+
+// A call whose only top-level child is a single non-empty object literal
+// (`fn({ ... })`) fuses the pair: `({` acts as the opener and `})` as the
+// closer, so the object's entries are splatted as direct children of the
+// call. The tokens keep the input's exact text, including any spacing
+// between `(` and `{` or between `}` and `)`.
+const matchCallObjectAt = (text: string, i: number, numIndentsHere: number): Level | null => {
+	let j = i + 1
+	while (isWhitespace(text[j])) {
+		j++
+	}
+	if (text[j] !== '{') {
+		return null
+	}
+	const braceEnd = findBalancedBraceEnd(text, j)
+	if (braceEnd === -1) {
+		return null
+	}
+	if (text.slice(j + 1, braceEnd - 1).trim() === '') {
+		return null
+	}
+	let k = braceEnd
+	while (isWhitespace(text[k])) {
+		k++
+	}
+	if (text[k] !== ')') {
+		return null
+	}
+	return {
+		type: 'call_object',
+		openToken: text.slice(i, j + 1),
+		closeToken: text.slice(braceEnd - 1, k + 1),
+		numIndentsInSiblings: numIndentsHere + 1,
+	}
 }
 
 // Scans a nested tag's prop list (starting just after its name) for its
