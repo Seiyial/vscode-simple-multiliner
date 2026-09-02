@@ -61,9 +61,6 @@ export const openTokenOf = (level: Level): string => {
 	return level.name === '' ? '<>' : `<${level.name}`
 }
 
-export const jsxCloseTokenOf = (name: string): string =>
-	name === '' ? '</>' : `</${name}>`
-
 export type TCloseMatch =
 	| { kind: 'none' }
 	| { kind: 'pop', token: string }
@@ -163,6 +160,154 @@ export const findSplatTarget = (text: string, numIndentsHere: number): { level: 
 			}
 		}
 		i++
+	}
+	return null
+}
+
+export type TJsxChildrenClose = { start: number, end: number }
+
+// Skips a `{...}` expression container starting at the opening brace;
+// returns the index just past its matching `}`, or -1 if unbalanced. JSX
+// inside the expression is skipped wholesale, so it can never affect the
+// caller's depth counting.
+const findBalancedBraceEnd = (text: string, from: number): number => {
+	let depth = 1
+	let i = from + 1
+	while (i < text.length) {
+		const char = text[i]
+		if (isStringOpener(char)) {
+			const end = findStringEnd(text, i + 1, char)
+			if (end === -1) {
+				return -1
+			}
+			i = end + 1
+			continue
+		}
+		if (char === '{') {
+			depth++
+		} else if (char === '}') {
+			depth--
+			if (depth === 0) {
+				return i + 1
+			}
+		}
+		i++
+	}
+	return -1
+}
+
+// Scans a nested tag's prop list (starting just after its name) for its
+// ending `>`/`/>`; strings and expression containers are skipped so a `>`
+// inside them cannot be misread as the tag's end
+const findJsxOpenTagEnd = (text: string, from: number): { end: number, selfClosing: boolean } | null => {
+	let i = from
+	while (i < text.length) {
+		const char = text[i]
+		if (isStringOpener(char)) {
+			const end = findStringEnd(text, i + 1, char)
+			if (end === -1) {
+				return null
+			}
+			i = end + 1
+			continue
+		}
+		if (char === '{') {
+			const end = findBalancedBraceEnd(text, i)
+			if (end === -1) {
+				return null
+			}
+			i = end
+			continue
+		}
+		if (char === '/' && text[i + 1] === '>') {
+			return { end: i + 2, selfClosing: true }
+		}
+		if (char === '>') {
+			return { end: i + 1, selfClosing: false }
+		}
+		i++
+	}
+	return null
+}
+
+// Matches the close token `</name ...whitespace...>` (exactly `</>` for
+// fragments) starting at i; returns its span or null
+const matchJsxCloseAt = (text: string, i: number, name: string): TJsxChildrenClose | null => {
+	if (name === '') {
+		return text.startsWith('</>', i) ? { start: i, end: i + 3 } : null
+	}
+	if (matchJsxNameAt(text, i + 2) !== name) {
+		return null
+	}
+	let j = i + 2 + name.length
+	while (isWhitespace(text[j])) {
+		j++
+	}
+	return text[j] === '>' ? { start: i, end: j + 1 } : null
+}
+
+// Finds the close token that ends the children of a jsx level whose
+// children start at `start`. Nested same-name tags are depth-counted;
+// nested tags of any name are skipped with string and expression
+// awareness, so close tokens inside their props (e.g. `title="</div>"`)
+// or inside expressions cannot be misread; `<` in text (e.g. `1 < 2`)
+// stays verbatim.
+export const findJsxChildrenClose = (text: string, start: number, name: string): TJsxChildrenClose | null => {
+	let depth = 0
+	let i = start
+	while (i < text.length) {
+		const char = text[i]
+		if (char === '{') {
+			const end = findBalancedBraceEnd(text, i)
+			if (end === -1) {
+				return null
+			}
+			i = end
+			continue
+		}
+		if (char !== '<') {
+			i++
+			continue
+		}
+		if (text.startsWith('</', i)) {
+			const closeName = name === '' ? '' : matchJsxNameAt(text, i + 2) ?? ''
+			const close = matchJsxCloseAt(text, i, closeName)
+			if (close === null) {
+				i++
+				continue
+			}
+			if (closeName === name) {
+				if (depth === 0) {
+					return close
+				}
+				depth--
+			}
+			i = close.end
+			continue
+		}
+		if (text[i + 1] === '>') {
+			// nested fragment open `<>`; it is already complete, and only
+			// same-name (fragment) levels count toward the depth
+			if (name === '') {
+				depth++
+			}
+			i += 2
+			continue
+		}
+		const openName = matchJsxNameAt(text, i + 1)
+		if (openName === null) {
+			// '<' in text (e.g. `1 < 2`); a name would have been a nested tag
+			i++
+			continue
+		}
+		const tag = findJsxOpenTagEnd(text, i + 1 + openName.length)
+		if (tag === null) {
+			return null
+		}
+		if (!tag.selfClosing && openName === name) {
+			depth++
+		}
+		i = tag.end
 	}
 	return null
 }

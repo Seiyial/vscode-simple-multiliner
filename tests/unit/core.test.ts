@@ -55,66 +55,96 @@ describe('splat lang blocks', () => {
 })
 
 describe('splat jsx', () => {
-	test('splits props and keeps children inline', () => {
-		expect(expanded('<div className="x">y</div>')).toEqual({ changed: true, text: '<div\n    className="x">y</div>' })
+	test('splits props and indents children, close tag at base indent', () => {
+		expect(expanded('<div className="x">y</div>')).toEqual({ changed: true, text: '<div\n    className="x"\n>\n    y\n</div>' })
 	})
 
-	test('re-attaches the self-closing slash to the last prop', () => {
-		expect(expanded('<div a b />')).toEqual({ changed: true, text: '<div\n    a\n    b />' })
+	test('puts the self-closing slash on its own line at the opener indent', () => {
+		expect(expanded('<div a b />')).toEqual({ changed: true, text: '<div\n    a\n    b\n/>' })
 	})
 
-	test('propless tags with children are a no-op', () => {
-		expect(expanded('<div>x</div>')).toEqual({ changed: false, reason: 'nothing-to-expand' })
+	test('puts the self-closing slash on its own line even without a preceding space', () => {
+		expect(expanded('<div a/>')).toEqual({ changed: true, text: '<div\n    a\n/>' })
+	})
+
+	test('indents children of propless tags', () => {
+		expect(expanded('<div>x</div>')).toEqual({ changed: true, text: '<div>\n    x\n</div>' })
+	})
+
+	test('indents children with tabs', () => {
+		expect(splat('<div>x</div>', { type: 'tab' })).toEqual({ changed: true, text: '<div>\n\tx\n</div>' })
+	})
+
+	test('preserves the leading indent for children', () => {
+		expect(expanded('    <div>x</div>')).toEqual({ changed: true, text: '    <div>\n        x\n    </div>' })
 	})
 
 	test('propless self-closing tags are a no-op', () => {
 		expect(expanded('<div />')).toEqual({ changed: false, reason: 'nothing-to-expand' })
 	})
 
-	test('text children with spaces stay inline', () => {
-		expect(expanded('<p>Hello world</p>')).toEqual({ changed: false, reason: 'nothing-to-expand' })
+	test('empty children stay glued', () => {
+		expect(expanded('<div></div>')).toEqual({ changed: false, reason: 'nothing-to-expand' })
+	})
+
+	test('text children keep their interior spaces on the children line', () => {
+		expect(expanded('<p>Hello world</p>')).toEqual({ changed: true, text: '<p>\n    Hello world\n</p>' })
 	})
 
 	test('apostrophes in text children do not open phantom strings', () => {
-		expect(expanded("<p>don't do it</p>")).toEqual({ changed: false, reason: 'nothing-to-expand' })
+		expect(expanded("<p>don't do it</p>")).toEqual({ changed: true, text: "<p>\n    don't do it\n</p>" })
 	})
 
-	test('nested tags stay inline', () => {
-		expect(expanded('<div><p>a</p><p>b</p></div>')).toEqual({ changed: false, reason: 'nothing-to-expand' })
+	test('nested tags are not recursively indented', () => {
+		expect(expanded('<div><p>a</p><p>b</p></div>')).toEqual({ changed: true, text: '<div>\n    <p>a</p><p>b</p>\n</div>' })
 	})
 
-	test('preserves a space before the closing bracket', () => {
-		expect(expanded('<div a >x</div>')).toEqual({ changed: true, text: '<div\n    a >x</div>' })
+	test('puts the ending opener on its own line regardless of preceding spaces', () => {
+		expect(expanded('<div a >x</div>')).toEqual({ changed: true, text: '<div\n    a\n>\n    x\n</div>' })
 	})
 
 	test('supports member and hyphenated tag names', () => {
-		expect(expanded('<Foo.Bar a="1" />')).toEqual({ changed: true, text: '<Foo.Bar\n    a="1" />' })
-		expect(expanded('<foo-bar a />')).toEqual({ changed: true, text: '<foo-bar\n    a />' })
+		expect(expanded('<Foo.Bar a="1" />')).toEqual({ changed: true, text: '<Foo.Bar\n    a="1"\n/>' })
+		expect(expanded('<foo-bar a />')).toEqual({ changed: true, text: '<foo-bar\n    a\n/>' })
 	})
 
-	test('fragments without props are a no-op', () => {
-		expect(expanded('<>x</>')).toEqual({ changed: false, reason: 'nothing-to-expand' })
+	test('fragments indent their children', () => {
+		expect(expanded('<>x</>')).toEqual({ changed: true, text: '<>\n    x\n</>' })
 	})
 
 	test('jsx elements inside arrays stay inline', () => {
 		expect(expanded('[<div/>, <p/>]')).toEqual({ changed: true, text: '[\n    <div/>,\n    <p/>\n]' })
 	})
 
-	test('expression containers in children are untouched', () => {
-		expect(expanded('<div>{a, b}</div>')).toEqual({ changed: false, reason: 'nothing-to-expand' })
+	test('expression containers in children are not split', () => {
+		expect(expanded('<div>{a, b}</div>')).toEqual({ changed: true, text: '<div>\n    {a, b}\n</div>' })
 	})
 
-	test('less-than in text children is untouched', () => {
-		expect(expanded('<p>1 < 2</p>')).toEqual({ changed: false, reason: 'nothing-to-expand' })
+	test('less-than in text children stays verbatim', () => {
+		expect(expanded('<p>1 < 2</p>')).toEqual({ changed: true, text: '<p>\n    1 < 2\n</p>' })
 	})
 
 	test('nested same-name tags keep exact text', () => {
 		const input = '<div a><div>b</div></div>'
-		expect(expanded(input)).toEqual({ changed: true, text: '<div\n    a><div>b</div></div>' })
+		expect(expanded(input)).toEqual({ changed: true, text: '<div\n    a\n>\n    <div>b</div>\n</div>' })
+	})
+
+	test('close tokens inside nested prop strings are not misread', () => {
+		const input = '<div><p title="</div>">x</p></div>'
+		expect(expanded(input)).toEqual({ changed: true, text: '<div>\n    <p title="</div>">x</p>\n</div>' })
+	})
+
+	test('jsx inside expression containers does not affect the close search', () => {
+		const input = '<div>{a ? <div>b</div> : c}</div>'
+		expect(expanded(input)).toEqual({ changed: true, text: '<div>\n    {a ? <div>b</div> : c}\n</div>' })
+	})
+
+	test('nested self-closing same-name tags do not affect the close search', () => {
+		expect(expanded('<div><div/></div>')).toEqual({ changed: true, text: '<div>\n    <div/>\n</div>' })
 	})
 
 	test('preserves the leading indent of the line', () => {
-		expect(expanded('    <div a b />')).toEqual({ changed: true, text: '    <div\n        a\n        b />' })
+		expect(expanded('    <div a b />')).toEqual({ changed: true, text: '    <div\n        a\n        b\n    />' })
 	})
 })
 

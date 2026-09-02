@@ -1,13 +1,13 @@
 import { LevelStack } from '../model/Stack'
 import { indents } from '../utils/indents'
 import {
+	findJsxChildrenClose,
 	findSplatTarget,
 	findStringEnd,
 	isWhitespace,
 	matchClose,
 	matchOpen,
 	openTokenOf,
-	jsxCloseTokenOf,
 } from './levels'
 
 export type TSplatFailureReason = 'no-block-found' | 'nothing-to-expand' | 'unbalanced'
@@ -18,7 +18,9 @@ export type TSplatResult =
 
 // One-degree splat: direct children of the first block in the selection each
 // get their own line; everything deeper is copied through verbatim. JSX prop
-// lists are splatted, JSX children stay inline on the last prop line.
+// lists are splatted, with the closing `>`/`/>` on an own line at the
+// opener's indent; JSX children go on their own line at sibling indent with
+// the closing tag at base indent, never recursively indented.
 export const splat = (rawText: string, indentSource: indents.TIndentSource): TSplatResult => {
 	const spec = indents.getBaseIndent(indentSource)
 	const text = rawText.trimEnd()
@@ -37,13 +39,13 @@ export const splat = (rawText: string, indentSource: indents.TIndentSource): TSp
 
 	const stack = new LevelStack([target.level])
 	let outText = inText.slice(0, target.index) + openToken
+	// everything emitted after the opener; a newline in this region means the
+	// prop list was splatted onto multiple lines
+	const propsStart = outText.length
 	let i = target.index + openToken.length
 	// lazily emitted newline+indent, flushed just before the next verbatim
 	// content so whitespace runs after separators/openers never double up
-	// a fragment starts in the children phase, whose content is inline
-	// verbatim, so no break is pending after its opener
-	const isFragment = target.level.type === 'jsx_tag' && target.level.phase === 'children'
-	let pendingBreak: string | null = isFragment ? null : '\n' + siblingIndent
+	let pendingBreak: string | null = '\n' + siblingIndent
 	let pendingFromSeparator = false
 
 	const flush = (chunk: string) => {
@@ -78,14 +80,24 @@ export const splat = (rawText: string, indentSource: indents.TIndentSource): TSp
 		}
 
 		if (top.type === 'jsx_tag' && top.phase === 'children') {
-			const closeToken = jsxCloseTokenOf(top.name)
-			const end = inText.indexOf(closeToken, i)
-			if (end === -1) {
+			const close = findJsxChildrenClose(inText, i, top.name)
+			if (close === null) {
 				return { changed: false, reason: 'unbalanced' }
 			}
-			flush(inText.slice(i, end + closeToken.length))
+			const content = inText.slice(i, close.start)
+			const closeToken = inText.slice(close.start, close.end)
+			if (content.trim() === '') {
+				// empty children stay glued to the opener (e.g. `<div></div>`)
+				pendingBreak = null
+				pendingFromSeparator = false
+				outText += content + closeToken
+			} else {
+				// one verbatim chunk at sibling indent, never split further
+				flush(content.trim())
+				outText += '\n' + closeIndent + closeToken
+			}
 			stack.removeTop()
-			i = end + closeToken.length
+			i = close.end
 			continue
 		}
 
@@ -94,15 +106,24 @@ export const splat = (rawText: string, indentSource: indents.TIndentSource): TSp
 		const close = matchClose(top, inText, i)
 		if (close.kind !== 'none') {
 			if (top.type === 'jsx_tag') {
-				// jsx closes glue to the current line; when the pending break
-				// came from a prop separator, its space is re-attached
-				if (pendingFromSeparator) {
-					outText += ' '
-				}
+				// a splatted prop list ends with its close on an own line at
+				// the opener's indent; an empty prop list keeps the close
+				// glued (re-attaching the separator's space, e.g. `<div />`)
+				const propsAreMultiline = outText.slice(propsStart).includes('\n')
+				const hadSeparatorSpace = pendingFromSeparator
 				pendingBreak = null
 				pendingFromSeparator = false
-				outText += close.token
+				if (propsAreMultiline) {
+					outText += '\n' + closeIndent + close.token
+				} else {
+					if (hadSeparatorSpace) {
+						outText += ' '
+					}
+					outText += close.token
+				}
 				if (close.kind === 'enter-children') {
+					// children start on their own line at sibling indent
+					pendingBreak = '\n' + siblingIndent
 					top.phase = 'children'
 				} else {
 					stack.removeTop()

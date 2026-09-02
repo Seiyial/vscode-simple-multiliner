@@ -32,7 +32,8 @@
 		"pretest": "yarn run test-compile && yarn run lint",
 		"lint": "eslint src --ext ts",
 		"test": "node ./out/test/runTest.js",
-		"test:unit": "bun test tests/unit"
+		"test:unit": "bun test tests/unit",
+		"typecheck": "tsc -p ./ --noEmit && tsc -p tsconfig.tests.json --noEmit"
 	},
 	"devDependencies": {
 		"@types/bun": "^1.4.0",
